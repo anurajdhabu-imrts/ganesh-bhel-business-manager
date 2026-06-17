@@ -8,8 +8,8 @@ interface CashFlowProps {
 
 export default function CashFlowManager({ data }: CashFlowProps) {
   // Let's build a chronological list of Cash Ledger transactions
-  // Cash book start balance. Seed: ₹72,500
-  let runningCash = 72500;
+  // Cash book start balance. Seed: ₹0
+  let runningCash = 0;
 
   interface CashTransaction {
     id: string;

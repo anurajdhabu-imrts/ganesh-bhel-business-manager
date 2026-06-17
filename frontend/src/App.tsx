@@ -19,6 +19,50 @@ import ShopsManager from "./components/Shops";
 import { SystemData, DailySales, Purchase, Staff, StaffAdvance, StaffWelfareExpense, SalaryPayment, DailyClosingLog, Product, Shop } from "./types";
 import { Sparkles, Bot, Terminal, RefreshCw, Layers } from "lucide-react";
 
+// Canonical empty state. Every array field is present so components can safely
+// call `.map` before the backend responds (or on a stale local snapshot).
+const DEFAULT_DATA: SystemData = {
+  language: "en",
+  userRole: "owner",
+  sales: [],
+  products: [],
+  purchases: [],
+  staff: [],
+  advances: [],
+  welfareExpenses: [],
+  salaries: [],
+  inventory: [],
+  closingLogs: [],
+  notifications: [],
+  categories: [],
+  shops: [
+    { id: "main", name: "Chinchwad Outlet", location: "Chinchwad, Pune", status: "Active" },
+    { id: "swargate", name: "Swargate Branch", location: "Swargate, Pune", status: "Active" }
+  ],
+  lastUpdated: 0
+};
+
+// Merge any partial data over the default so no array field is ever undefined.
+function normalizeData(partial: Partial<SystemData> | null | undefined): SystemData {
+  const d = partial || {};
+  return {
+    ...DEFAULT_DATA,
+    ...d,
+    sales: d.sales ?? [],
+    products: d.products ?? [],
+    purchases: d.purchases ?? [],
+    staff: d.staff ?? [],
+    advances: d.advances ?? [],
+    welfareExpenses: d.welfareExpenses ?? [],
+    salaries: d.salaries ?? [],
+    inventory: d.inventory ?? [],
+    closingLogs: d.closingLogs ?? [],
+    notifications: d.notifications ?? [],
+    categories: d.categories ?? [],
+    shops: (d.shops && d.shops.length > 0) ? d.shops : DEFAULT_DATA.shops,
+  };
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [isLoading, setIsLoading] = useState(true);
@@ -45,30 +89,13 @@ export default function App() {
       try {
         const parsed = JSON.parse(saved);
         if (parsed && typeof parsed === "object" && parsed.hasOwnProperty("inventory")) {
-          return parsed;
+          return normalizeData(parsed);
         }
       } catch (e) {
         console.error("Error reading initial state from localStorage:", e);
       }
     }
-    return {
-      language: "en",
-      userRole: "owner",
-      sales: [],
-      purchases: [],
-      staff: [],
-      advances: [],
-      welfareExpenses: [],
-      salaries: [],
-      inventory: [],
-      closingLogs: [],
-      notifications: [],
-      shops: [
-        { id: "main", name: "Chinchwad Outlet", location: "Chinchwad, Pune", status: "Active" },
-        { id: "swargate", name: "Swargate Branch", location: "Swargate, Pune", status: "Active" }
-      ],
-      lastUpdated: 0
-    };
+    return normalizeData(null);
   });
 
   const handleSelectShop = (shopId: string) => {
@@ -141,8 +168,9 @@ export default function App() {
           }
         }
 
-        setDbData(merged);
-        localStorage.setItem("gbms_local_db_state", JSON.stringify(merged));
+        const normalized = normalizeData(merged);
+        setDbData(normalized);
+        localStorage.setItem("gbms_local_db_state", JSON.stringify(normalized));
       }
     } catch (error) {
       console.error("Connectivity issue loading DB:", error);
